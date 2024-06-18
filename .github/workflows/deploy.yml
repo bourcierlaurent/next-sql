@@ -1,0 +1,38 @@
+name: build and deploy
+
+on:
+    push:
+        branches:
+            - main
+            - dev
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v2
+
+            - name: Upload to server (main)
+              if: github.ref == 'refs/heads/main'
+              uses: SamKirkland/FTP-Deploy-Action@4.0.0
+              with:
+                  server: ${{ secrets.SERVER }}
+                  username: ${{ secrets.USERNAME }}
+                  password: ${{ secrets.PASSWORD }}
+                  local-dir: ./
+                  server-dir: ./www/sql/
+
+            - name: Install/build and Start Nest.js Application (main)
+              if: github.ref == 'refs/heads/main'
+              uses: appleboy/ssh-action@v1.0.0
+              with:
+                  host: ${{ secrets.SERVER }}
+                  username: ${{ secrets.USERNAME }}
+                  password: ${{ secrets.PASSWORD }}
+                  port: 22
+                  script: |
+                      cd www/sql/
+                      npm install --production
+                      npm run build
+                      pm2 reload sql
